@@ -31,6 +31,7 @@
 
 #include "Checkpoints.h"
 #include "Common/StringTools.h"
+#include "Common/DnsTools.h"
 
 using namespace Logging;
 
@@ -42,12 +43,12 @@ bool Checkpoints::add_checkpoint(uint32_t height, const std::string &hash_str) {
   Crypto::Hash h = NULL_HASH;
 
   if (!Common::podFromHex(hash_str, h)) {
-    logger(ERROR) << "WRONG HASH IN CHECKPOINTS!!!";
+    logger(WARNING) << "Wrong hash in checkpoint for height " << height;
     return false;
   }
 
   if (!m_points.insert({ height, h }).second) {
-    logger(ERROR) << "WRONG HASH IN CHECKPOINTS!!!";
+    logger(WARNING) << "Checkpoint already exists.";
     return false;
   }
 
@@ -133,5 +134,41 @@ std::vector<uint32_t> Checkpoints::getCheckpointHeights() const {
 
   return checkpointHeights;
 }
+#ifndef __ANDROID__
+//---------------------------------------------------------------------------
+bool Checkpoints::load_checkpoints_from_dns()
+{
+  std::string domain("checkpoints.elya.io");
+  std::vector<std::string>records;
+
+  if (!Common::fetch_dns_txt(domain, records)) {
+    logger(Logging::INFO) << "Failed to lookup DNS checkpoint records from " << domain;
+  }
+
+  for (const auto& record : records) {
+	  uint32_t height;
+	  Crypto::Hash hash = NULL_HASH;
+	  std::stringstream ss;
+	  int del = record.find_first_of(':');
+	  std::string height_str = record.substr(0, del), hash_str = record.substr(del + 1, 64);
+	  ss.str(height_str);
+	  ss >> height;
+	  char c;
+	  if ((ss.fail() || ss.get(c)) || !Common::podFromHex(hash_str, hash)) {
+		  logger(Logging::INFO) << "Failed to parse DNS checkpoint record: " << record;
+		  continue;
+	  }
+
+	  if (!(0 == m_points.count(height))) {
+		  logger(DEBUGGING) << "Checkpoint already exists for height: " << height << ". Ignoring DNS checkpoint.";
+	  }
+	  else {
+		  add_checkpoint(height, hash_str);
+	  }
+  }
+
+  return true;
+}
+#endif
 
 }
