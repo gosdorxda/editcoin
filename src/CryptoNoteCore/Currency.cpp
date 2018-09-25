@@ -544,7 +544,7 @@ namespace CryptoNote {
 		// N = int(45 * (600 / T) ^ 0.3));
         uint64_t diff_target;
         size_t N;
-        if (blockMajorVersion == BLOCK_MAJOR_VERSION_4) {
+        if (blockMajorVersion >= BLOCK_MAJOR_VERSION_4) {
             diff_target = m_difficultyTarget;
             N = CryptoNote::parameters::DIFFICULTY_WINDOW_V4;
         }
