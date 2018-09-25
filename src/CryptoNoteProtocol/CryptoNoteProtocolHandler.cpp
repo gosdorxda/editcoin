@@ -165,10 +165,18 @@ bool CryptoNoteProtocolHandler::process_payload_sync_data(const CORE_SYNC_DATA& 
     }
   } else {
     int64_t diff = static_cast<int64_t>(hshd.current_height) - static_cast<int64_t>(get_current_blockchain_height());
-
+    uint64_t difficulty_target = 0;
+    CryptoNote::difficulty_type difficulty = 0;
+    m_core.getBlockDifficulty(get_current_blockchain_height(), difficulty);
+    if (difficulty >= BLOCK_MAJOR_VERSION_4) {
+        difficulty_target = m_currency.difficultyTarget_v2();
+    }
+    else {
+        difficulty_target = m_currency.difficultyTarget();
+    }
     logger(diff >= 0 ? (is_inital ? Logging::INFO : Logging::DEBUGGING) : Logging::TRACE, Logging::BRIGHT_YELLOW) << context <<
       "Sync data returned unknown top block: " << get_current_blockchain_height() << " -> " << hshd.current_height
-      << " [" << std::abs(diff) << " blocks (" << std::abs(diff) / (24 * 60 * 60 / m_currency.difficultyTarget()) << " days) "
+      << " [" << std::abs(diff) << " blocks (" << std::abs(diff) / (24 * 60 * 60 / difficulty_target) << " days) "
       << (diff >= 0 ? std::string("behind") : std::string("ahead")) << "] " << std::endl << "SYNCHRONIZATION started";
 
     logger(Logging::DEBUGGING) << "Remote top block height: " << hshd.current_height << ", id: " << hshd.top_id;

@@ -77,6 +77,7 @@ namespace CryptoNote {
 		if (isTestnet()) {
 			m_upgradeHeightV2 = 10;
 			m_upgradeHeightV3 = 20;
+            m_upgradeHeightV4 = static_cast<uint32_t>(-1);
 			m_blocksFileName = "testnet_" + m_blocksFileName;
 			m_blocksCacheFileName = "testnet_" + m_blocksCacheFileName;
 			m_blockIndexesFileName = "testnet_" + m_blockIndexesFileName;
@@ -134,6 +135,9 @@ namespace CryptoNote {
 		else if (majorVersion == BLOCK_MAJOR_VERSION_3) {
 			return m_upgradeHeightV3;
 		}
+        else if (majorVersion == BLOCK_MAJOR_VERSION_4) {
+            return m_upgradeHeightV4;
+        }
 		else {
 			return static_cast<uint32_t>(-1);
 		}
@@ -146,7 +150,7 @@ namespace CryptoNote {
 
 		// Tail emission
 
-		uint64_t baseReward = (m_moneySupply - alreadyGeneratedCoins) >> m_emissionSpeedFactor;
+		uint64_t baseReward = blockMajorVersion >= BLOCK_MAJOR_VERSION_4 ? UINT64_C(150000000000000) : (m_moneySupply - alreadyGeneratedCoins) >> m_emissionSpeedFactor;
 
 
 
@@ -169,10 +173,16 @@ namespace CryptoNote {
 		return true;
 	}
 
-	size_t Currency::maxBlockCumulativeSize(uint64_t height) const {
+	size_t Currency::maxBlockCumulativeSize(uint64_t height, uint8_t blockMajorVersion) const {
+        uint64_t blockSpeedDenominator = 0;
+        if (blockMajorVersion >= BLOCK_MAJOR_VERSION_4) {
+            blockSpeedDenominator = m_maxBlockSizeGrowthSpeedDenominator_v2;
+        } else {
+            blockSpeedDenominator = m_maxBlockSizeGrowthSpeedDenominator;
+        }
 		assert(height <= std::numeric_limits<uint64_t>::max() / m_maxBlockSizeGrowthSpeedNumerator);
 		size_t maxSize = static_cast<size_t>(m_maxBlockSizeInitial +
-			(height * m_maxBlockSizeGrowthSpeedNumerator) / m_maxBlockSizeGrowthSpeedDenominator);
+			(height * m_maxBlockSizeGrowthSpeedNumerator) / blockSpeedDenominator);
 		assert(maxSize >= m_maxBlockSizeInitial);
 		return maxSize;
 	}
@@ -407,7 +417,10 @@ namespace CryptoNote {
 	difficulty_type Currency::nextDifficulty(uint8_t blockMajorVersion, std::vector<uint64_t> timestamps,
 		std::vector<difficulty_type> cumulativeDifficulties) const {
 
-		if (blockMajorVersion >= BLOCK_MAJOR_VERSION_3) {
+        if (blockMajorVersion >= BLOCK_MAJOR_VERSION_4) {
+            return nextDifficultyV4(timestamps, cumulativeDifficulties);
+        }
+		else if (blockMajorVersion == BLOCK_MAJOR_VERSION_3) {
 			return nextDifficultyV3(timestamps, cumulativeDifficulties);
 		}
 		else if (blockMajorVersion == BLOCK_MAJOR_VERSION_2) {
@@ -580,6 +593,69 @@ namespace CryptoNote {
 		return next_difficulty;
 	}
 
+    difficulty_type Currency::nextDifficultyV4(std::vector<uint64_t> timestamps,
+        std::vector<difficulty_type> cumulativeDifficulties) const {
+
+        // LWMA difficulty algorithm
+        // Copyright (c) 2017-2018 Zawy
+        // MIT license http://www.opensource.org/licenses/mit-license.php.
+        // This is an improved version of Tom Harding's (Deger8) "WT-144"  
+        // Karbowanec, Masari, Bitcoin Gold, and Bitcoin Cash have contributed.
+        // See https://github.com/zawy12/difficulty-algorithms/issues/1 for other algos.
+        // Do not use "if solvetime < 0 then solvetime = 1" which allows a catastrophic exploit.
+        // T= target_solvetime;
+        // N = int(45 * (600 / T) ^ 0.3));
+
+        const int64_t T = static_cast<int64_t>(m_difficultyTarget);
+        size_t N = CryptoNote::parameters::DIFFICULTY_WINDOW_V4;
+
+        // return a difficulty of 1 for first 3 blocks if it's the start of the chain
+        if (timestamps.size() < 4) {
+            return 1;
+        }
+        // otherwise, use a smaller N if the start of the chain is less than N+1
+        else if (timestamps.size() < N + 1) {
+            N = timestamps.size() - 1;
+        }
+        else if (timestamps.size() > N + 1) {
+            timestamps.resize(N + 1);
+            cumulativeDifficulties.resize(N + 1);
+        }
+
+        // To get an average solvetime to within +/- ~0.1%, use an adjustment factor.
+        const double adjust = 0.998;
+        // The divisor k normalizes LWMA.
+        const double k = N * (N + 1) / 2;
+
+        double LWMA(0), sum_inverse_D(0), harmonic_mean_D(0), nextDifficulty(0);
+        int64_t solveTime(0);
+        uint64_t difficulty(0), next_difficulty(0);
+
+        // Loop through N most recent blocks.
+        for (size_t i = 1; i <= N; i++) {
+            solveTime = static_cast<int64_t>(timestamps[i]) - static_cast<int64_t>(timestamps[i - 1]);
+            solveTime = std::min<int64_t>((T * 7), std::max<int64_t>(solveTime, (-6 * T)));
+            difficulty = cumulativeDifficulties[i] - cumulativeDifficulties[i - 1];
+            LWMA += (int64_t)(solveTime * i) / k;
+            sum_inverse_D += 1 / static_cast<double>(difficulty);
+        }
+
+        // Keep LWMA sane in case something unforeseen occurs.
+        if (static_cast<int64_t>(boost::math::round(LWMA)) < T / 20)
+            LWMA = static_cast<double>(T) / 20;
+
+        harmonic_mean_D = N / sum_inverse_D * adjust;
+        nextDifficulty = harmonic_mean_D * T / LWMA;
+        next_difficulty = static_cast<uint64_t>(nextDifficulty);
+
+        // minimum limit
+        if (!isTestnet() && next_difficulty < 100000) {
+            next_difficulty = 100000;
+        }
+
+        return next_difficulty;
+    }
+
 	bool Currency::checkProofOfWorkV1(Crypto::cn_context& context, const Block& block, difficulty_type currentDiffic,
 		Crypto::Hash& proofOfWork) const {
 		if (BLOCK_MAJOR_VERSION_1 != block.majorVersion) {
@@ -641,6 +717,7 @@ namespace CryptoNote {
 
 		case BLOCK_MAJOR_VERSION_2:
 		case BLOCK_MAJOR_VERSION_3:
+        case BLOCK_MAJOR_VERSION_4:
 			return checkProofOfWorkV2(context, block, currentDiffic, proofOfWork);
 		}
 
@@ -682,6 +759,7 @@ namespace CryptoNote {
 		timestampCheckWindow_v1(parameters::BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW_V1);
 		blockFutureTimeLimit(parameters::CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT);
 		blockFutureTimeLimit_v1(parameters::CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT_V1);
+        blockFutureTimeLimit_v2(parameters::CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT_V2);
 
 		moneySupply(parameters::MONEY_SUPPLY);
 		emissionSpeedFactor(parameters::EMISSION_SPEED_FACTOR);
@@ -697,15 +775,19 @@ namespace CryptoNote {
 		defaultDustThreshold(parameters::DEFAULT_DUST_THRESHOLD);
 
 		difficultyTarget(parameters::DIFFICULTY_TARGET);
+        difficultyTarget_v2(parameters::DIFFICULTY_TARGET_V2);
 		difficultyWindow(parameters::DIFFICULTY_WINDOW);
+        difficultyWindow_v2(parameters::DIFFICULTY_WINDOW_V4);
 		difficultyLag(parameters::DIFFICULTY_LAG);
 		difficultyCut(parameters::DIFFICULTY_CUT);
 
 		maxBlockSizeInitial(parameters::MAX_BLOCK_SIZE_INITIAL);
 		maxBlockSizeGrowthSpeedNumerator(parameters::MAX_BLOCK_SIZE_GROWTH_SPEED_NUMERATOR);
 		maxBlockSizeGrowthSpeedDenominator(parameters::MAX_BLOCK_SIZE_GROWTH_SPEED_DENOMINATOR);
+        maxBlockSizeGrowthSpeedDenominator_v2(parameters::MAX_BLOCK_SIZE_GROWTH_SPEED_DENOMINATOR_V2);
 
 		lockedTxAllowedDeltaSeconds(parameters::CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS);
+        lockedTxAllowedDeltaSeconds_v2(parameters::CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS_V2);
 		lockedTxAllowedDeltaBlocks(parameters::CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS);
 
 		mempoolTxLiveTime(parameters::CRYPTONOTE_MEMPOOL_TX_LIVETIME);
@@ -718,9 +800,12 @@ namespace CryptoNote {
 
 		upgradeHeightV2(parameters::UPGRADE_HEIGHT_V2);
 		upgradeHeightV3(parameters::UPGRADE_HEIGHT_V3);
+        upgradeHeightV4(parameters::UPGRADE_HEIGHT_V4);
 		upgradeVotingThreshold(parameters::UPGRADE_VOTING_THRESHOLD);
 		upgradeVotingWindow(parameters::UPGRADE_VOTING_WINDOW);
+        upgradeVotingWindow_v2(parameters::UPGRADE_VOTING_WINDOW_V2);
 		upgradeWindow(parameters::UPGRADE_WINDOW);
+        upgradeWindow_v2(parameters::UPGRADE_WINDOW_V2);
 
 		blocksFileName(parameters::CRYPTONOTE_BLOCKS_FILENAME);
 		blocksCacheFileName(parameters::CRYPTONOTE_BLOCKSCACHE_FILENAME);
@@ -764,6 +849,14 @@ namespace CryptoNote {
 		return *this;
 	}
 
+    CurrencyBuilder& CurrencyBuilder::difficultyWindow_v2(size_t val) {
+        if (val < 2) {
+            throw std::invalid_argument("val at difficultyWindow()");
+        }
+        m_currency.m_difficultyWindow_v2 = val;
+        return *this;
+    }
+
 	CurrencyBuilder& CurrencyBuilder::upgradeVotingThreshold(unsigned int val) {
 		if (val <= 0 || val > 100) {
 			throw std::invalid_argument("val at upgradeVotingThreshold()");
@@ -781,5 +874,14 @@ namespace CryptoNote {
 		m_currency.m_upgradeWindow = static_cast<uint32_t>(val);
 		return *this;
 	}
+
+    CurrencyBuilder& CurrencyBuilder::upgradeWindow_v2(size_t val) {
+        if (val <= 0) {
+            throw std::invalid_argument("val at upgradeWindow()");
+        }
+
+        m_currency.m_upgradeWindow_v2 = static_cast<uint32_t>(val);
+        return *this;
+    }
 
 }
