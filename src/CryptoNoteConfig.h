@@ -61,11 +61,10 @@ const uint64_t EXPECTED_NUMBER_OF_BLOCKS_PER_DAY_V2          = 24 * 60 * 60 / DI
 const size_t   DIFFICULTY_WINDOW                             = EXPECTED_NUMBER_OF_BLOCKS_PER_DAY; // blocks
 const size_t   DIFFICULTY_WINDOW_V2                          = 17; // blocks
 const size_t   DIFFICULTY_WINDOW_V3                          = 60; // blocks
-const size_t   DIFFICULTY_WINDOW_V4                          = EXPECTED_NUMBER_OF_BLOCKS_PER_DAY_V2; // blocks
+const size_t   DIFFICULTY_WINDOW_V4                          = 60; // blocks
 const size_t   DIFFICULTY_CUT                                = 60;  // timestamps to cut after sorting
 const size_t   DIFFICULTY_LAG                                = 15;  // !!!
 static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW - 2, "Bad DIFFICULTY_WINDOW or DIFFICULTY_CUT");
-static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW_V4 - 2, "Bad DIFFICULTY_WINDOW or DIFFICULTY_CUT");
 
 const size_t   MAX_BLOCK_SIZE_INITIAL                        = 1000000;
 const uint64_t MAX_BLOCK_SIZE_GROWTH_SPEED_NUMERATOR         = 100 * 1024;
