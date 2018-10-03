@@ -150,7 +150,7 @@ namespace CryptoNote {
 
 		// Tail emission
 
-		uint64_t baseReward = blockMajorVersion >= BLOCK_MAJOR_VERSION_4 ? UINT64_C(150000000000000) : (m_moneySupply - alreadyGeneratedCoins) >> m_emissionSpeedFactor;
+		uint64_t baseReward = blockMajorVersion >= BLOCK_MAJOR_VERSION_4 ? UINT64_C(1500000000000) : (m_moneySupply - alreadyGeneratedCoins) >> m_emissionSpeedFactor;
 
 
 
