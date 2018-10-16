@@ -417,12 +417,9 @@ namespace CryptoNote {
 	difficulty_type Currency::nextDifficulty(uint8_t blockMajorVersion, std::vector<uint64_t> timestamps,
 		std::vector<difficulty_type> cumulativeDifficulties) const {
 
-        if (blockMajorVersion >= BLOCK_MAJOR_VERSION_4) {
+        if (blockMajorVersion >= BLOCK_MAJOR_VERSION_3) {
             return nextDifficultyV3(timestamps, cumulativeDifficulties, blockMajorVersion);
         }
-		else if (blockMajorVersion == BLOCK_MAJOR_VERSION_3) {
-			return nextDifficultyV3(timestamps, cumulativeDifficulties);
-		}
 		else if (blockMajorVersion == BLOCK_MAJOR_VERSION_2) {
 			return nextDifficultyV2(timestamps, cumulativeDifficulties);
 		}
@@ -543,16 +540,8 @@ namespace CryptoNote {
 		// T= target_solvetime;
 		// N = int(45 * (600 / T) ^ 0.3));
         uint64_t diff_target;
-        size_t N;
-        if (blockMajorVersion >= BLOCK_MAJOR_VERSION_4) {
-            diff_target = m_difficultyTarget;
-            N = CryptoNote::parameters::DIFFICULTY_WINDOW_V4;
-        }
-        else {
-            diff_target = m_difficultyTarget_v2;
-            N = CryptoNote::parameters::DIFFICULTY_WINDOW_V3;
-        }
-		const int64_t T = static_cast<int64_t>(diff_target);
+        size_t N = blockMajorVersion >= BLOCK_MAJOR_VERSION_4 ? CryptoNote::parameters::DIFFICULTY_WINDOW_V4 : CryptoNote::parameters::DIFFICULTY_WINDOW_V3;
+		const int64_t T = static_cast<int64_t>(blockMajorVersion >= BLOCK_MAJOR_VERSION_4 ? m_difficultyTarget_v2 : m_difficultyTarget);
 
 		// return a difficulty of 1 for first 3 blocks if it's the start of the chain
 		if (timestamps.size() < 4) {
