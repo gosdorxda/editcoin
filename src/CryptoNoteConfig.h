@@ -141,8 +141,8 @@ const char     P2P_STAT_TRUSTED_PUB_KEY[]                    = "8f80f9a5a434a9f1
 const char* const SEED_NODES[] = { 
 	"seed1.elya.io:57777",
 	"seed2.elya.io:57777",
-  "108.61.86.135:57777",
- 	"45.76.162.134:57777"
+  	"45.32.149.166:57777",
+ 	"45.76.251.130:57777"
 };
 
 struct CheckpointData {
