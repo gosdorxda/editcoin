@@ -105,7 +105,7 @@ const char     MINER_CONFIG_FILE_NAME[]                      = "miner_conf.json"
 } // parameters
 
 const char     CRYPTONOTE_NAME[]                             = "editcoin";
-const char     GENESIS_COINBASE_TX_HEX[]		     = "";
+const char     GENESIS_COINBASE_TX_HEX[]		     = "010a01ff0001fac484c69cd608029b2e4c0281c0b02e7c53291a94d1d0cbff8883f8024f5142ee494ffbbd088071210181dd3640f01babf601add7179d81e40eb342ee8b1597af903762cfbdd2434c40";
 
 
 const uint8_t  CURRENT_TRANSACTION_VERSION                   =  1;
