@@ -25,7 +25,7 @@ namespace parameters {
 const uint64_t CRYPTONOTE_MAX_BLOCK_NUMBER                   = 500000000;
 const size_t   CRYPTONOTE_MAX_BLOCK_BLOB_SIZE                = 500000000;
 const size_t   CRYPTONOTE_MAX_TX_SIZE                        = 10000000000;
-const uint64_t CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX       = 0x15df; // addresses start with "eL"
+const uint64_t CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX       = 0x1b7f60; // addresses start with "edit"
 const size_t   CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW          = 10;
 
 const uint64_t DIFFICULTY_TARGET                             = 60; // seconds
@@ -104,8 +104,8 @@ const char     CRYPTONOTE_BLOCKCHAIN_INDICES_FILENAME[]      = "blockchainindice
 const char     MINER_CONFIG_FILE_NAME[]                      = "miner_conf.json";
 } // parameters
 
-const char     CRYPTONOTE_NAME[]                             = "elyacoin";
-const char     GENESIS_COINBASE_TX_HEX[]		     	= "010a01ff0001fac484c69cd608029b2e4c0281c0b02e7c53291a94d1d0cbff8883f8024f5142ee494ffbbd0880712101a7c135e15f1506791655e56db1c88b7c9aa41b803aea077664df1248d4873f98";
+const char     CRYPTONOTE_NAME[]                             = "editcoin";
+const char     GENESIS_COINBASE_TX_HEX[]		     = "";
 
 
 const uint8_t  CURRENT_TRANSACTION_VERSION                   =  1;
@@ -136,13 +136,10 @@ const uint32_t P2P_DEFAULT_CONNECTION_TIMEOUT                = 5000;          //
 const uint32_t P2P_DEFAULT_PING_CONNECTION_TIMEOUT           = 2000;          // 2 seconds
 const uint64_t P2P_DEFAULT_INVOKE_TIMEOUT                    = 60 * 2 * 1000; // 2 minutes
 const size_t   P2P_DEFAULT_HANDSHAKE_INVOKE_TIMEOUT          = 5000;          // 5 seconds
-const char     P2P_STAT_TRUSTED_PUB_KEY[]                    = "8f80f9a5a434a9f1510d13336228debfee9c918ce505efe225d8c94d045fa115";
+const char     P2P_STAT_TRUSTED_PUB_KEY[]                    = "";
 
 const char* const SEED_NODES[] = { 
-	"seed1.elya.io:57777",
-	"seed2.elya.io:57777",
-  	"108.61.86.135:57777",
- 	"45.76.162.134:57777"
+	"207.180.232.209:57777"
 };
 
 struct CheckpointData {
@@ -151,9 +148,9 @@ struct CheckpointData {
 };
 
 const std::initializer_list<CheckpointData> CHECKPOINTS = { 
-  { 60001,	"37a7d78ac3ba0aeaf8041b4ef1c0d8fb05ea4a273a3ead3640295f6d945bfc45" },
-  {138001,	"5bea032abc973e9e2770437e8c11a5d167e1f0f806cdd7771800f7381a60430d" },
-  {284548,	"a69bbedf5953e6eb235ac7a8c45357d1268d6ff462e37ccb207a3eabc4d0ebd2" }
+  // { 60001,	"37a7d78ac3ba0aeaf8041b4ef1c0d8fb05ea4a273a3ead3640295f6d945bfc45" },
+  // {138001,	"5bea032abc973e9e2770437e8c11a5d167e1f0f806cdd7771800f7381a60430d" },
+  // {284548,	"a69bbedf5953e6eb235ac7a8c45357d1268d6ff462e37ccb207a3eabc4d0ebd2" }
 };
 
 } // CryptoNote
