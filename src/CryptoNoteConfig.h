@@ -105,7 +105,7 @@ const char     MINER_CONFIG_FILE_NAME[]                      = "miner_conf.json"
 } // parameters
 
 const char     CRYPTONOTE_NAME[]                             = "editcoin";
-const char     GENESIS_COINBASE_TX_HEX[]		     = "010a01ff0001fac484c69cd608029b2e4c0281c0b02e7c53291a94d1d0cbff8883f8024f5142ee494ffbbd088071210181dd3640f01babf601add7179d81e40eb342ee8b1597af903762cfbdd2434c40";
+const char     GENESIS_COINBASE_TX_HEX[]		     = "";
 
 
 const uint8_t  CURRENT_TRANSACTION_VERSION                   =  1;
@@ -139,7 +139,7 @@ const size_t   P2P_DEFAULT_HANDSHAKE_INVOKE_TIMEOUT          = 5000;          //
 const char     P2P_STAT_TRUSTED_PUB_KEY[]                    = "";
 
 const char* const SEED_NODES[] = { 
-	"207.180.232.209:57777"
+	"178.128.30.212:57777"
 };
 
 struct CheckpointData {
